@@ -37,6 +37,8 @@ def evaluate_ragas(questions: list[str], answers: list[str],
     try:
         from ragas import evaluate
         from ragas.metrics import faithfulness, answer_relevancy, context_precision, context_recall
+        from ragas.llms import llm_factory
+        from ragas.embeddings import embedding_factory
         from datasets import Dataset
         import math
 
@@ -46,9 +48,15 @@ def evaluate_ragas(questions: list[str], answers: list[str],
             "contexts": contexts,
             "ground_truth": ground_truths,
         })
+
+        eval_llm = llm_factory("gpt-4o-mini")
+        eval_embeddings = embedding_factory()
+
         result = evaluate(
             dataset,
             metrics=[faithfulness, answer_relevancy, context_precision, context_recall],
+            llm=eval_llm,
+            embeddings=eval_embeddings,
         )
         df = result.to_pandas()
         per_question = [
@@ -57,10 +65,10 @@ def evaluate_ragas(questions: list[str], answers: list[str],
                 answer=str(row.get("answer", "")),
                 contexts=list(row.get("contexts", [])),
                 ground_truth=str(row.get("ground_truth", "")),
-                faithfulness=float(row.get("faithfulness", 0.0) or 0.0),
-                answer_relevancy=float(row.get("answer_relevancy", 0.0) or 0.0),
-                context_precision=float(row.get("context_precision", 0.0) or 0.0),
-                context_recall=float(row.get("context_recall", 0.0) or 0.0),
+                faithfulness=float(row["faithfulness"]),
+                answer_relevancy=float(row["answer_relevancy"]),
+                context_precision=float(row["context_precision"]),
+                context_recall=float(row["context_recall"]),
             )
             for _, row in df.iterrows()
         ]
@@ -68,21 +76,27 @@ def evaluate_ragas(questions: list[str], answers: list[str],
         def _safe_mean(col):
             if col in df:
                 m = df[col].mean()
-                return 0.0 if math.isnan(m) else float(m)
-            return float(result.get(col, 0.0) or 0.0)
+                return float(m)
+            return float(result.get(col))
 
         models: list[str] = []
-        for m in [faithfulness, answer_relevancy, context_precision, context_recall]:
-            llm = getattr(m, "llm", None)
-            m_name = getattr(llm, "model_name", None) or getattr(llm, "model", None)
-            if m_name and str(m_name) not in models:
-                models.append(str(m_name))
-            emb = getattr(m, "embeddings", None)
-            e_name = getattr(emb, "model_name", None) or getattr(emb, "model", None)
-            if e_name and str(e_name) not in models:
-                models.append(str(e_name))
-        if not models:
-            models = ["gpt-4o-mini", "text-embedding-ada-002"]
+        llm_model = (
+            getattr(getattr(eval_llm, "langchain_llm", None), "model_name", None)
+            or getattr(getattr(eval_llm, "langchain_llm", None), "model", None)
+            or getattr(eval_llm, "model_name", None)
+            or getattr(eval_llm, "model", None)
+        )
+        if llm_model and str(llm_model) not in models:
+            models.append(str(llm_model))
+
+        emb_model = (
+            getattr(getattr(eval_embeddings, "embeddings", None), "model", None)
+            or getattr(getattr(eval_embeddings, "embeddings", None), "model_name", None)
+            or getattr(eval_embeddings, "model_name", None)
+            or getattr(eval_embeddings, "model", None)
+        )
+        if emb_model and str(emb_model) not in models:
+            models.append(str(emb_model))
 
         return {
             "faithfulness": _safe_mean("faithfulness"),
@@ -94,14 +108,7 @@ def evaluate_ragas(questions: list[str], answers: list[str],
         }
     except Exception as e:
         print(f"  ⚠️  RAGAS evaluation failed: {e}")
-        return {
-            "faithfulness": 0.0,
-            "answer_relevancy": 0.0,
-            "context_precision": 0.0,
-            "context_recall": 0.0,
-            "per_question": [],
-            "metadata": {"evaluator_models": ["gpt-4o-mini", "text-embedding-ada-002"]},
-        }
+        raise
 
 
 def failure_analysis(eval_results: list[EvalResult], bottom_n: int = 10) -> list[dict]:
