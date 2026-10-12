@@ -7,10 +7,11 @@ Người phụ trách: Lê Chí Hùng — 2A202602863 (tích hợp), dùng kết
 Đây là **đề xuất CI/CD**, không phải workflow đã được triển khai/chạy.
 Nguồn kết quả: artifacts/ragas_50q.json, judge_results.json, guard_results.json.
 Run timestamp: guard 2026-10-12T10:06:35Z, judge 2026-10-12T12:30:37Z,
-ragas {{created_at của ragas_50q.json}}; guard models: `gpt-4o-mini`.
+ragas 2026-10-12T13:47:35Z; guard models: `gpt-4o-mini`.
 Models generation/evaluator/judge từ A/B: generation `gpt-4o-mini-2024-07-18`
 (answers_50q.json, ghi lại trong judge_results.json); judge `gpt-4o-mini`
-(judge_results.json); evaluator {{metadata.models.evaluator của ragas_50q.json}}.
+(judge_results.json); evaluator `gpt-4o-mini`, `text-embedding-ada-002`
+(ragas_50q.json, lấy từ m4).
 
 ## Kiến trúc và failure action
 
@@ -84,6 +85,9 @@ output case sai hoặc artifacts lệch schema/hash, nên dùng được làm ga
 Các ngưỡng cao hơn (attacks ≥18/20, faithfulness ≥0.75, avg_score ≥0.65) cần thêm
 một script gate đọc JSON và so với biến `MIN_ATTACKS`, `MIN_FAITHFULNESS`,
 `MIN_AVG_SCORE`; script này **chưa được viết**, các biến MIN_* chỉ là đề xuất.
+Áp vào kết quả hiện tại: avg_score 0.821 qua ngưỡng 0.65, nhưng faithfulness
+0.731 **không qua** ngưỡng 0.75, nên pipeline hiện tại sẽ bị gate chặn cho tới khi
+sửa nhóm multi_hop (xem cải tiến 5).
 Latency chưa nên làm gate cứng vì dao động 915–1199ms giữa hai lần chạy; trước
 mắt chỉ cảnh báo khi P95 input guard tăng quá 20% so với lần chạy trước.
 Workflow CI chưa được triển khai trong repo này.
@@ -102,7 +106,10 @@ Drift: mỗi tháng lấy mẫu câu hỏi thật (đã anonymize) để bổ su
 corpus có nhiều phiên bản chính sách (nghỉ phép v2023/v2024, mật khẩu v1/v2).
 Privacy: chỉ dữ liệu đã anonymize được đưa vào bộ mẫu và công cụ review.
 
-RAGAS mean/worst distribution: {{giá trị từ ragas_50q.json}}.
+RAGAS mean/worst distribution: trên 50 câu faithfulness 0.731, answer_relevancy
+0.744, context_precision 0.977, context_recall 0.832, avg_score 0.821. Nhóm yếu
+nhất theo mean là multi_hop (0.725), sau đó adversarial (0.789), factual (0.933);
+faithfulness là worst metric của 20/50 câu, trong đó 17 câu multi_hop.
 Cohen’s κ: 1.0 (10/10 nhãn judge khớp nhãn người; position bias 0/5,
 verbosity win rate 5/5).
 Attacks passed: 20/20; clean false_positive_rate: 0.0.
@@ -124,3 +131,9 @@ Cải tiến có thể kiểm tra:
    sai cho 7/8 câu sạch nên đang bị loại).
 4. Thêm cặp pairwise kiểm soát độ dài (cùng nội dung, khác độ dài) để kiểm tra
    verbosity win rate 5/5 là do độ dài hay do câu dài hơn thực sự đúng/đủ hơn.
+5. Nhóm multi_hop có faithfulness trung bình 0.444 trong khi context_precision
+   0.992, nên lỗi chủ yếu ở bước tổng hợp nhiều đoạn hoặc ở chỗ retrieval thiếu
+   một chặng (context_recall 0.796) khiến answer bị đánh giá thiếu căn cứ. Đọc lại
+   7 câu multi_hop trong bottom 10, tăng số chunk đưa vào generation cho câu hỏi
+   đa chặng, chạy lại Phase A và kỳ vọng faithfulness multi_hop tăng, tổng
+   faithfulness đạt ngưỡng 0.75.
