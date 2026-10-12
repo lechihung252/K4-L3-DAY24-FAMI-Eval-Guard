@@ -8,7 +8,7 @@ Trưởng nhóm/người nộp: Lê Chí Hùng — 2A202602863
 
 Ngày lab/deadline áp dụng: 12/10/2026 23:59 — Asia/Ho_Chi_Minh (UTC+07:00)
 
-Commit dùng để chấm: 9e264c5
+Commit dùng để chấm: d27a683
 
 Nhóm 3 người, mỗi người phụ trách một phase; blueprint (Task 13) do cả nhóm điền
 từ kết quả A/B/C.
