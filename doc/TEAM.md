@@ -6,9 +6,9 @@ Repo chung: https://github.com/lechihung252/K4-Track-3B-Day24-Eval-Guard
 
 Trưởng nhóm/người nộp: Lê Chí Hùng — 2A202602863
 
-Ngày lab/deadline áp dụng: {{Ngày giờ theo thông báo lớp}} — Asia/Ho_Chi_Minh (UTC+07:00)
+Ngày lab/deadline áp dụng: 12/10/2026 23:59 — Asia/Ho_Chi_Minh (UTC+07:00)
 
-Commit dùng để chấm: {{Commit SHA}}
+Commit dùng để chấm: 9e264c5
 
 Nhóm 3 người, mỗi người phụ trách một phase; blueprint (Task 13) do cả nhóm điền
 từ kết quả A/B/C.
@@ -18,10 +18,10 @@ từ kết quả A/B/C.
 | STT | Họ và tên | MSSV | Vai trò / công việc thật | Bằng chứng |
 |---|---|---|---|---|
 | 1 | Lê Chí Hùng | 2A202602863 | Phase C: Tasks 9a–12 trong `src/phase_c_guard.py`, prompt input rail trong `guardrails/config.yml`, chạy batch C; tích hợp nhánh và nộp bài | Commit 6dfe4f5 (nhánh `phase-c`); `artifacts/guard_results.json` |
-| 2 | Trần Tuấn Hoàng | 2A202602832 | Phase A: module m1–m5, Tasks 1–4 trong `src/phase_a_ragas.py` | PR #1 (commits 32b492e, 6551182), PR #2 (`artifacts/answers_50q.json`); {{artifacts Phase A}} |
+| 2 | Trần Tuấn Hoàng | 2A202602832 | Phase A: module m1–m5, Tasks 1–4 trong `src/phase_a_ragas.py`, tinh chỉnh m4_eval, chạy batch Phase A live | PR #1 (commits 32b492e, 6551182), PR #2 (`artifacts/answers_50q.json`); PR #5 (`artifacts/ragas_50q.json`, `doc/reports/failure_clusters.md`) |
 | 3 | Nguyễn Văn Hưởng | 2A202602743 | Phụ trách Phase B: Tasks 5–8 với hỗ trợ Codex, tests offline, batch judge thật và báo cáo κ/bias | PR #3; `src/phase_b_judge.py`, `tests/test_phase_b.py`, `artifacts/judge_results.json`, `doc/reports/bias_report.md` |
 
-Người tích hợp/chạy batch/nộp link: {{Họ tên, công việc và bằng chứng}}.
+Người tích hợp/chạy batch/nộp link: Lê Chí Hùng (trưởng nhóm, điều phối PR và nộp repo), Trần Tuấn Hoàng (sinh 50 answers và chạy batch Phase A live), Nguyễn Văn Hưởng (chạy batch Phase B live).
 
 ## Môi trường và chuẩn bị trước lớp
 
@@ -42,8 +42,11 @@ Models/Qdrant/50 answers đã chuẩn bị: spaCy `en_core_web_lg` 3.8.0 tải v
 được; Qdrant `qdrant/qdrant:v1.9.7` chạy qua Docker Compose. Full NeMo 0.10.0 chạy
 thật trong batch C với `gpt-4o-mini`. 50 answers do thành viên Phase A sinh
 (PR #2): `validate_answers` đạt, 20/20/10, cả 50 câu `generation_mode=llm` với
-`gpt-4o-mini-2024-07-18`, không fallback, không answer nào trùng ground_truth.
-{{Môi trường máy Phase A và lệnh setup_answers --live}}.
+### Máy 3 — Trần Tuấn Hoàng (Phase A)
+
+OS/Python/compiler: Windows 11 + WSL2 Ubuntu 24.04 (Linux 5.15.167.4-microsoft-standard-WSL2 x86_64), Python 3.11.11, GCC 13.3.0.
+Virtualenv/dependencies/imports: Môi trường conda `(day24)` kế thừa Python 3.11. Cài đặt các gói theo `requirements/requirements.txt` và `constraints-core.txt`; hạ phiên bản `pyarrow==17.0.0` để tương thích hoàn toàn `numpy==1.26.4`. Kiểm tra `python -c "import ragas, nemoguardrails, presidio_analyzer, spacy; print('imports OK')"` cho kết quả OK. Đã tải mô hình spaCy `en_core_web_lg`.
+Models/Qdrant/50 answers đã chuẩn bị: Qdrant `qdrant/qdrant:v1.9.7` chạy ổn định qua Docker Compose (cổng 6333). Sinh thành công 50 answers bằng `python scripts/setup_answers.py --live` sử dụng `gpt-4o-mini-2024-07-18` (100% LLM, không fallback). Chạy live evaluation Phase A: `python scripts/run_experiments.py --phase a --live` tạo `artifacts/ragas_50q.json` với 50 câu đánh giá đầy đủ qua Ragas 0.1.22.
 
 ### Máy 2 — Nguyễn Văn Hưởng (Phase B)
 
@@ -100,12 +103,12 @@ verbosity win rate=5/5. Bằng chứng: `artifacts/judge_results.json`.
 
 ### TranTuanHoang-2A202602832
 
-- Phần được giao và phần thực tế đã làm: {{Thành viên Phase A tự điền}}.
-- Bằng chứng: {{Commit/PR và artifacts/reports liên quan}}.
-- Cách kiểm tra: {{Unit mock hoặc live experiment, lệnh và kết quả}}.
-- Điều đã học: {{Khái niệm và cách thể hiện trong bài}}.
-- Giới hạn/cách xử lý: {{Vấn đề và kiểm chứng}}.
-- Nguồn/AI hỗ trợ nếu có: {{Công cụ, phạm vi, cách tự kiểm chứng}}.
+- Phần được giao và phần thực tế đã làm: Phụ trách toàn bộ Phase A. Tích hợp 5 module m1–m5 từ Day 18 (`m1_chunking.py`, `m2_search.py`, `m3_rerank.py`, `m4_eval.py`, `m5_enrichment.py`). Triển khai Tasks 1–4 trong `src/phase_a_ragas.py`: Task 1 `group_by_distribution` (chia đúng 20/20/10), Task 2 `run_ragas_50q` (chuẩn hóa adapter gọi `m4_eval.evaluate_ragas`, trả về `RagasEvaluation` chứa `results` và `evaluator_models`), Task 3 `bottom_10` (trích xuất 10 câu điểm thấp nhất tăng dần, map `diagnosis`/`suggested_fix`), Task 4 `cluster_analysis` (tạo ma trận worst_metric 4×3, tính dominant distribution theo mean thấp nhất, dominant metric và insight). Tinh chỉnh `m4_eval.py` sử dụng `llm_factory` và `embedding_factory` động để trích xuất model IDs chuẩn thay vì hardcode, loại bỏ `or 0.0`. Chạy sinh 50 answers và batch Phase A live; hoàn thiện báo cáo phân tích lỗi `doc/reports/failure_clusters.md`.
+- Bằng chứng: PR #1 (code logic Phase A), PR #2 (`artifacts/answers_50q.json`), commit cập nhật `src/m4_eval.py`, `artifacts/ragas_50q.json` (created_at `2026-10-12T13:47:35.816200+00:00`), `doc/reports/failure_clusters.md`.
+- Cách kiểm tra: Offline tests `python -m pytest tests/test_phase_a.py -q` pass toàn bộ 6/6 test cases. Sinh answers bằng `python scripts/setup_answers.py --live`. Chạy batch live bằng `python scripts/run_experiments.py --phase a --live`. Kiểm tra tính hợp lệ qua `validate_phase_a` và schema verification trong `check_lab.py`.
+- Điều đã học: Hiểu rõ vai trò và giới hạn của 4 metric Ragas: faithfulness xem câu trả lời có bám context không, answer relevancy xem trả lời có đúng trọng tâm câu hỏi không, context precision/recall đo lường chất lượng retrieval. Trong multi-hop và adversarial queries, retrieval thiếu chunk (recall thấp) dẫn đến generator trả về "Không tìm thấy", kéo tụt cả faithfulness và relevancy về 0 dù LLM không hề bịa đặt. Ma trận lỗi đếm theo worst metric của mọi câu chứ không phải chỉ câu fail, và nhóm yếu nhất phải chọn theo mean avg_score thấp nhất thay vì tổng số lượng câu.
+- Giới hạn/cách xử lý: Khi retrieval lấy thiếu thông tin cho câu hỏi đa chặng (multi-hop) hoặc không phân biệt được phiên bản cũ/mới của policy (adversarial), pipeline chọn phương án an toàn là từ chối trả lời ("Không tìm thấy"). Cần nâng cấp Hybrid Search kết hợp BM25 mở rộng và reranker để tăng recall cho multi-hop, đồng thời bổ sung metadata filtering theo ngày hiệu lực để loại bỏ chunk tài liệu đã hết hạn.
+- Nguồn/AI hỗ trợ nếu có: Antigravity AI hỗ trợ sửa lỗi tương thích môi trường PyArrow/NumPy, gợi ý tích hợp factory cho Ragas m4, và hỗ trợ rà soát schema các báo cáo. Toàn bộ logic, kiểm chứng bằng chứng và phân tích số liệu thực tế được tự thực thi và xác nhận đối chiếu với kết quả chạy live.
 
 ### NguyenVanHuong-2A202602743
 
@@ -149,5 +152,4 @@ verbosity win rate=5/5. Bằng chứng: `artifacts/judge_results.json`.
 
 ## Cập nhật sau khi nộp
 
-{{Ghi phiên bản nộp; nếu sửa sau deadline, ghi commit/thời điểm/lý do và thông báo
-coach cho phép áp dụng bản cập nhật. Nếu không có cập nhật, ghi rõ không có.}}
+Bản nộp chính thức trước deadline; không có cập nhật bổ sung sau deadline.
